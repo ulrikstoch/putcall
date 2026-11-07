@@ -80,6 +80,11 @@ class Model:
 # ---------------------------------------------------------------------------
 # Data
 def _to_et(idx) -> pd.DatetimeIndex:
+    if not isinstance(idx, pd.DatetimeIndex):
+        # Tekst med blandede UTC-offsets (sommer-/vintertid) -> fælles UTC
+        sample = str(idx[0]) if len(idx) else ""
+        has_tz = sample.endswith("Z") or "+" in sample[10:] or "-" in sample[10:]
+        idx = pd.to_datetime(idx, utc=has_tz)
     idx = pd.DatetimeIndex(idx)
     if idx.tz is None:
         return idx.tz_localize(ET)
@@ -135,14 +140,14 @@ def load_yahoo(days_cache: Path) -> tuple[pd.DataFrame, pd.DataFrame, str]:
 
 
 def load_csv(index_csv: str, vix_csv: str | None):
-    idx = pd.read_csv(index_csv, parse_dates=[0], index_col=0)
+    idx = pd.read_csv(index_csv, index_col=0)
     idx.index = _to_et(idx.index)
     idx = idx.rename(columns=str.lower)
     if "barmin" not in idx:
         idx["barmin"] = 1
     vix = None
     if vix_csv:
-        vix = pd.read_csv(vix_csv, parse_dates=[0], index_col=0)
+        vix = pd.read_csv(vix_csv, index_col=0)
         vix.index = _to_et(vix.index)
         vix = vix.rename(columns=str.lower)
     return idx, (vix, None), f"CSV: {index_csv}" + (f", VIX: {vix_csv}" if vix_csv else " (fast VIX)")
@@ -170,7 +175,7 @@ def load_ib(n_days: int, symbol: str = "XSP"):
                 continue
             cache = DATA_DIR / f"ib_{sym}_{day:%Y%m%d}.csv"
             if cache.exists():
-                df = pd.read_csv(cache, parse_dates=[0], index_col=0)
+                df = pd.read_csv(cache, index_col=0)
             else:
                 end = datetime.combine(day, time(16, 0), tzinfo=ET).astimezone(tz=None)
                 bars = ib.reqHistoricalData(c, endDateTime=end, durationStr="1 D", barSizeSetting="1 min",
