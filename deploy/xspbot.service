@@ -1,0 +1,17 @@
+[Unit]
+Description=XSP 0DTE opening range breakout bot (én handelsdag)
+After=network-online.target ibgateway.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=trader
+WorkingDirectory=/home/trader/putcall
+EnvironmentFile=/home/trader/putcall/.env
+ExecStart=/home/trader/putcall/.venv/bin/python -m xspbot
+# Botten kører fra 09:15 til senest ca. 16:00 ET
+TimeoutStartSec=9h
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target
