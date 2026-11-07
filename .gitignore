@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.env
+state.json
+bot.log*
+trades.csv
+STOP
+data/
+approvals.json
+lab_live_state.json
+lab_fills.csv

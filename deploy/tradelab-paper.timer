@@ -1,0 +1,9 @@
+[Unit]
+Description=Tradelab papir-rebalancering 09:45 New York-tid, man-fre
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 09:45:00 America/New_York
+Unit=tradelab-paper.service
+
+[Install]
+WantedBy=timers.target

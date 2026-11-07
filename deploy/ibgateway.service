@@ -1,0 +1,16 @@
+[Unit]
+Description=IB Gateway via IBC (automatisk login)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trader
+Environment=DISPLAY=:1
+# xvfb-run giver Gateway en virtuel skærm. -inline holder processen i forgrunden.
+ExecStart=/usr/bin/xvfb-run -a -n 1 -s "-screen 0 1024x768x24" /opt/ibc/gatewaystart.sh -inline
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

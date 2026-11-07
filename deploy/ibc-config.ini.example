@@ -1,0 +1,17 @@
+# Udsnit af /home/trader/ibc/config.ini (resten fra IBC's standard config.ini)
+IbLoginId=DIT_BRUGERNAVN
+IbPassword=DIT_PASSWORD
+# paper eller live
+TradingMode=paper
+# API skal kunne sende ordrer
+ReadOnlyApi=no
+AcceptIncomingConnectionAction=accept
+AcceptNonBrokerageAccountWarning=yes
+ExistingSessionDetectedAction=primary
+# Gateway skal genstartes dagligt; IBC gør det automatisk (VPS'ens lokale tid!)
+AutoRestartTime=11:45 PM
+# Port overskrives så den matcher botten (4002 paper / 4001 live)
+OverrideTwsApiPort=4002
+# Live: godkend 2FA i IBKR Mobile; IBC venter og prøver igen
+SecondFactorAuthenticationExitInterval=60
+ReloginAfterSecondFactorAuthenticationTimeout=yes

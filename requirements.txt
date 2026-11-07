@@ -1,0 +1,7 @@
+ib_async>=2.0
+tzdata
+pytest>=8
+# kun til backtest:
+numpy
+pandas
+yfinance
