@@ -1,0 +1,4 @@
+{"days": 4633, "hash": "65f75e7b09052d69", "kind": "research", "params": {"cash": "BIL", "n": 200, "symbol": "SPY"}, "sharpe": 0.6311, "strategy": "TrendSMA_v1", "ts": "2026-11-07T21:30:42+00:00"}
+{"days": 4633, "hash": "a5f300d72fa5da6b", "kind": "research", "params": {"assets": ["SPY", "QQQ", "IWM", "EFA", "EEM", "TLT", "GLD"], "cash": "BIL", "lookback": 252, "top": 2}, "sharpe": 0.3959, "strategy": "DualMomentum_v1", "ts": "2026-11-07T21:30:43+00:00"}
+{"days": 4633, "hash": "65f75e7b09052d69", "kind": "research", "params": {"cash": "BIL", "n": 200, "symbol": "SPY"}, "sharpe": 0.6311, "strategy": "TrendSMA_v1", "ts": "2026-11-07T21:30:58+00:00"}
+{"days": 6493, "hash": "2f2b106b5dfa2a54", "kind": "research", "params": {"symbol": "SPY"}, "sharpe": 0.538, "strategy": "BuyHold_v1", "ts": "2026-11-07T21:31:00+00:00"}

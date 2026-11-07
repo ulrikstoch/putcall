@@ -1,0 +1,9 @@
+[Unit]
+Description=Tradelab LIVE-rebalancering 09:50 New York-tid, man-fre
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 09:50:00 America/New_York
+Unit=tradelab-live.service
+
+[Install]
+WantedBy=timers.target

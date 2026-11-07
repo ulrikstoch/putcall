@@ -16,6 +16,10 @@ og kører uden opsyn på en Linux-VPS.
 > 0DTE-optioner kan miste hele værdien på få timer, og alt-ind betyder, at ét dårligt forløb
 > kan tømme kontoen.
 
+> **Nyt: `tradelab/`** er et strategi-laboratorium for aktier og ETF'er. Agenter forbedrer
+> strategierne hver nat, de papirhandles og kan først gå live, når **du** godkender.
+> Se [afsnittet om Tradelab](#tradelab-selvforbedrende-strategi-lab) nederst.
+
 ## Indhold
 
 | Fil | Formål |
@@ -234,3 +238,130 @@ Testene dækker tick-afrunding, valg af strike, positionsstørrelse, filtre, exi
 falsk broker og et falsk ur dækker de også hele handelsdage: take profit, stop loss, tidsstop,
 salgsforsøg, ingen bid, delvise fyld, overtagelse af åben position, genstart efter nedbrud midt i
 en handel, STOP-filen, mål nået og DRY_RUN.
+
+---
+
+# Tradelab: selvforbedrende strategi-lab
+
+Tradelab er bygget til at finde strategier, der tjener penge efter omkostninger på en lille
+konto. Det er bygget, så agenterne har svært ved at narre sig selv eller dig.
+
+```
+ Claude-agent (hver nat)          VPS (hver handelsdag)                 Dig
+ ───────────────────────          ─────────────────────                 ───
+ hypotese -> backtest  ─┐
+ (alle forsøg logges)   │
+                        ▼
+              RESEARCH-GATE  (8+ år, Deflated Sharpe, ≥ SPY risikojusteret,
+                        │     3/4 delperioder i plus, maxDD > −35 %, ingen look-ahead)
+                        ▼
+              INKUBATION  (koden låses via hash; fremadrettet test på nye data;
+                        │   den bedste kandidat papirhandles på IBKR kl. 09:45 ET)
+                        ▼
+              FORWARD-GATE  (≥ 60 handelsdage, plus, Sharpe > 0, maxDD > −20 %)
+                        │
+                        ▼   status "ready" -> PR + Telegram
+                                                          approve ID --capital N
+                                                          (kun i terminal på VPS)
+                                                                    │
+                                                                    ▼
+                                                     LIVE med loft over beløbet og
+                                                     nødstop ved −20 % fra toppen
+```
+
+## Vigtige værn
+
+- **Alle backtests logges** i `lab/trials.jsonl`. Kravet (Deflated Sharpe) bliver strengere,
+  jo flere varianter der er prøvet. Så kan heldige fund ikke slippe igennem.
+- **Strategien skal mindst være lige så god som at købe og holde SPY**, når der justeres for
+  risiko. Ellers er den ikke besværet værd.
+- **Koden låses ved registrering.** Kandidatens id er en hash af strategiens kildekode,
+  `indicators.py` og parametrene. Ændres noget, pensioneres kandidaten, og en ny skal
+  inkubere fra start. En godkendelse til live gælder kun præcis den hash.
+- **Look-ahead tjekkes automatisk** ved hver backtest.
+- **Realistiske omkostninger** efter IBKR's tiered-takster: min. $0,35 pr. ordre, 5 bps
+  slippage og handel på næste dags åbning.
+- **Agenterne kan aldrig sætte noget live.** `approve` kræver en interaktiv terminal på
+  VPS'en, og godkendelsen ligger i den lokale `approvals.json`, som ikke er i git.
+- **Papir-tilstand nægter at handle på en rigtig konto**, og live-tilstand nægter at handle
+  på en papirkonto. Kontoen genkendes på, om id'et starter med "DU".
+- **Nødstop i live:** falder kontoværdien 20 % fra toppen, sælges alt, godkendelsen
+  tilbagekaldes, og du får besked.
+- **Agenternes ændringer kommer som PR'er.** VPS'en kører kun `main`, så intet ændrer sig
+  på VPS'en, før du har merget.
+
+## Kommandoer
+
+```bash
+python -m tradelab list                               # strategier
+python -m tradelab backtest TrendSMA_v1 --params '{"n": 150}'
+python -m tradelab register KEY --params '{...}' --note "hypotese"
+python -m tradelab evaluate                           # forward-status -> lab/STATUS.md
+python -m tradelab status                             # inkl. aktiv live-godkendelse
+python -m tradelab trade --mode paper                 # rebalancér papirkontoen nu
+python -m tradelab approve <ID> --capital 150         # DIG: godkend til live
+python -m tradelab revoke                             # DIG: stop live
+```
+
+## Opsætning af papirhandel på VPS'en
+
+1. Følg IBKR- og VPS-trinnene ovenfor. Til aktier og ETF'er skal du desuden have:
+   - handelstilladelse til **US Stocks**
+   - **brøkdele** slået til: *Settings → Account Settings → Fractional Share Trading*
+   - markedsdata for amerikanske aktier, fx *US Securities Snapshot and Futures Value Bundle*
+     eller *NASDAQ/NYSE*
+2. **Kør ikke XSP-botten og tradelab på den samme papirkonto.** XSP-botten bruger al
+   kontant. Slå den fra med `sudo systemctl disable --now xspbot.timer`.
+3. Aktivér papirhandlen:
+   ```bash
+   sudo cp deploy/tradelab-paper.* /etc/systemd/system/
+   sudo systemctl daemon-reload && sudo systemctl enable --now tradelab-paper.timer
+   ```
+   Hver handelsdag kl. 09:45 ET henter VPS'en den seneste `main`, rebalancerer papirkontoen
+   efter den bedste kandidat og sender status til Telegram. Faktiske fyld logges i
+   `lab_fills.csv`, så du kan sammenligne med modellen.
+
+## Når en kandidat er "ready": sådan går du live
+
+1. Læs PR'en og `lab/STATUS.md`. Spørg dig selv, om hypotesen giver mening.
+2. Opret en separat `.env.live` med `IB_PORT=4001` og evt. `IB_ACCOUNT`, og start en
+   live-gateway. Det kan være en anden IBC-instans med `TradingMode=live`.
+3. Kør på VPS'en:
+   ```bash
+   python -m tradelab approve <ID> --capital 150
+   ```
+   Du skal skrive id'et for at bekræfte.
+4. Aktivér live-timeren:
+   ```bash
+   sudo cp deploy/tradelab-live.* /etc/systemd/system/
+   sudo systemctl daemon-reload && sudo systemctl enable --now tradelab-live.timer
+   ```
+   Live-servicen kører `git pull` med vilje ikke. Live-koden ændrer sig kun, når du selv
+   opdaterer den.
+5. **Udbetaling:** hæv fra IBKR (*Transfer & Pay → Withdraw*) til din danske bankkonto.
+   Bagefter skal toppunktet nulstilles, ellers ligner udbetalingen et tab og udløser
+   nødstoppet: slet `lab_live_state.json`.
+
+Skat: gevinster og udbytter fra amerikanske ETF'er skal selvangives i Danmark.
+Aktiebaserede ETF'er beskattes ofte som kapitalindkomst efter lagerprincippet, hvis de står på
+SKAT's liste over aktiebaserede investeringsselskaber. Undersøg det for de konkrete ETF'er, eller
+spørg en rådgiver.
+
+## Den natlige agent
+
+En planlagt Claude Code-session kører hver hverdag efter det amerikanske marked er lukket.
+Den følger [`lab/AGENT.md`](lab/AGENT.md):
+
+1. evaluerer kandidaterne
+2. skriver hypoteser i `lab/journal.md`
+3. tester højst 10 varianter og registrerer højst én
+4. skriver en rapport i `lab/reports/`
+5. opdaterer én PR mod `main`
+
+**Du skal kun gøre to ting:**
+
+- merge PR'en, når du er enig. Det starter papirhandel af nye kandidater på VPS'en.
+- køre `approve`, hvis en kandidat bliver "ready", og du vil gå live.
+
+**Forvent, at der går mindst 3 måneder, før noget kan blive "ready".** Det kan også ske, at
+intet nogensinde bliver det. Så har systemet sparet dig for at tabe penge.

@@ -1,0 +1,14 @@
+[Unit]
+Description=Tradelab daglig rebalancering (PAPIR)
+After=network-online.target ibgateway.service
+
+[Service]
+Type=oneshot
+User=trader
+WorkingDirectory=/home/trader/putcall
+EnvironmentFile=/home/trader/putcall/.env
+# Hent seneste godkendte kode fra main (kun fast-forward)
+ExecStartPre=/usr/bin/git -C /home/trader/putcall pull --ff-only origin main
+ExecStart=/home/trader/putcall/.venv/bin/python -m tradelab trade --mode paper
+ExecStartPost=/home/trader/putcall/.venv/bin/python -m tradelab evaluate --notify --no-save
+TimeoutStartSec=30min
